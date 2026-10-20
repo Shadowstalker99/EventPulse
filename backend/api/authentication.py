@@ -32,6 +32,15 @@ class FirebaseAuthentication(BaseAuthentication):
             
         id_token = auth_header[1]
         
+        # Support local development & seeded logins (e.g. local-user-1)
+        if id_token.startswith('local-user-'):
+            user_id = id_token.replace('local-user-', '')
+            try:
+                user = User.objects.get(id=user_id)
+                return (user, None)
+            except (User.DoesNotExist, ValueError):
+                raise AuthenticationFailed('User not found.')
+
         try:
             decoded_token = auth.verify_id_token(id_token)
             uid = decoded_token.get('uid')

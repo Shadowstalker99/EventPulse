@@ -12,13 +12,30 @@ from .serializers import (
     BookingSerializer, PaymentSerializer, CancellationSerializer
 )
 
+from django.db.models import Q
+
 class IsAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.is_admin)
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all().order_by('-start_time')
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+    def get_queryset(self):
+        queryset = Event.objects.all().order_by('start_time')
+        category = self.request.query_params.get('category')
+        search = self.request.query_params.get('search')
+        if category and category.lower() != 'all':
+            queryset = queryset.filter(category__iexact=category)
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | 
+                Q(description__icontains=search) |
+                Q(location__icontains=search) |
+                Q(organizer__icontains=search)
+            )
+        return queryset
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -158,6 +175,37 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        identifier = request.data.get('email', '').strip()
+        password = request.data.get('password', '')
+        requested_role = request.data.get('role', 'student').lower()
+
+        if not identifier or not password:
+            return Response({'detail': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email__iexact=identifier).first()
+        if not user:
+            user = User.objects.filter(username__iexact=identifier).first()
+
+        if not user or not user.check_password(password):
+            return Response({'detail': 'Invalid credentials. Please verify your email and password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Enforce role boundaries
+        if requested_role == 'admin' and not user.is_admin:
+            return Response({
+                'detail': 'Access Denied: This account does not possess Faculty/Administrator privileges. Please select Student Login.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        token = f"local-user-{user.id}"
+        serializer = UserSerializer(user)
+        return Response({
+            'token': token,
+            'user': serializer.data
+        }, status=status.HTTP_200_OK)
 
 class AdminStatsView(APIView):
     permission_classes = [IsAdminUser]

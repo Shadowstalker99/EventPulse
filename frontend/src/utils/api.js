@@ -7,9 +7,20 @@ const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   if (auth.currentUser) {
-    const token = await auth.currentUser.getIdToken();
-    config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = await auth.currentUser.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+      return config;
+    } catch (e) {
+      // Fallback to local token if Firebase token fetch fails
+    }
   }
+
+  const localToken = localStorage.getItem('eventpulse_token');
+  if (localToken) {
+    config.headers.Authorization = `Bearer ${localToken}`;
+  }
+
   return config;
 });
 

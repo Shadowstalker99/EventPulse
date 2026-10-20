@@ -11,6 +11,8 @@ class User(AbstractUser):
 class Event(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
+    category = models.CharField(max_length=100, default='General', blank=True)
+    organizer = models.CharField(max_length=255, default='Student Affairs', blank=True)
     location = models.CharField(max_length=255)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
