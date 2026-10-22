@@ -5,8 +5,8 @@ EventPulse is a production-ready, full-stack event management and ticket booking
 ## 🏗 Technology Stack
 - **Frontend:** React (Vite), React Router, Tailwind CSS, Axios, Firebase SDK
 - **Backend:** Django, Django REST Framework (DRF)
-- **Database:** SQLite (Configured as fallback for development, strict relational models implemented ready for MySQL migration).
-- **Authentication:** Firebase Authentication (JWT verification with Django).
+- **Database:** MySQL (Strict relational schema with PyMySQL).
+- **Authentication:** Dual mode: Firebase Authentication (JWT verification with Django) & local database session tokens.
 
 ## 📂 Project Structure
 ```
@@ -18,17 +18,26 @@ EventPulse/
 
 ## 🚀 Setup Instructions
 
-### 1. Backend Setup
-The backend runs on Python 3 and Django.
+### 1. Database & Backend Setup
+The backend runs on Python 3, Django, and MySQL.
+
+**Step A: Create the MySQL Database**
+```sql
+CREATE DATABASE eventpulse CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+Configure your MySQL credentials in `backend/.env` (`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`).
+
+**Step B: Initialize Backend**
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt # (Or manually install django, djangorestframework, firebase-admin, etc.)
+pip install -r requirements.txt
 
-# Run migrations and populate sample data
+# Run migrations and populate initial data
 python manage.py migrate
 python manage.py populate_db
+python manage.py seed_users
 
 # Run the server
 python manage.py runserver
